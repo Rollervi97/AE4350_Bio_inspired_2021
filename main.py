@@ -13,6 +13,9 @@ import os, sys
 import numpy as np
 import levenberg_marquardt as lm
 from keras.optimizers import SGD
+from datetime import datetime
+
+dataset_number = 0
 
 
 def print_hi(name):
@@ -78,31 +81,36 @@ def loadw(m, path):
     return m
 
 
-def testmain():
+def testmain(sp):
     data_path = 'C:/Users/ASUS/Google Drive/TU Delft/AE4350_Bio_inspired_intelligence_and_learning_for_Aerospace_Application/flight_data/csv_data'
     [fl, opti_file, cfsd_file] = getfilelist(data_path)
     #
-    data = loadtxt(f"{data_path}/{cfsd_file[0]}", delimiter=',')  # numpy array
-    gt = loadtxt(f"{data_path}/{opti_file[0]}", delimiter=',')  # numpy array
+
+    data = loadtxt(f"{data_path}/{cfsd_file[dataset_number]}", delimiter=',')  # numpy array
+    gt = loadtxt(f"{data_path}/{opti_file[dataset_number]}", delimiter=',')  # numpy array
 
     training = data[:, :12]  #
 
     ekf_x = data[:, 17]
     ekf_y = data[:, 18]
     ekf_z = data[:, 19]
-    ekf_roll = data[:, 14]
     ekf_pitch = data[:, 13]
+    ekf_roll = data[:, 14]
     ekf_yaw = data[:, 16]
 
     ekf = [ekf_x, ekf_y, ekf_z, ekf_roll, ekf_pitch, ekf_yaw]
 
-    gt_x = training[:, 1]
-    gt_y = training[:, 2]
-    gt_z = training[:, 3]
-    gt_roll = training[:, 4]
-    gt_pitch = training[:, 5]
-    gt_yaw = training[:, 6]
+    gt_x = gt[:, 0]
+    gt_y = gt[:, 1]
+    gt_z = gt[:, 2]
+    gt_pitch = gt[:, 3]
+    gt_roll = gt[:, 4]
+    gt_yaw = gt[:, 5]
     name = ["pos x", "pos y", "pos z", "att roll", "att pitch", "att yaw"]
+    n = []
+    for i in range(len(name)):
+        n.append(f"ds{dataset_number}_{name[i]}")
+
     gt_ = [gt_x, gt_y, gt_z, gt_roll, gt_pitch, gt_yaw]
 
     for i in range(len(gt_)):
@@ -110,11 +118,13 @@ def testmain():
         plt.plot(ekf[i], label=f"{name[i]} kalman filter")
         plt.plot(gt_[i], label=f"{name[i]} ground truth")
         plt.ylabel(name[i])
-        plt.legend
-        plt.savefig(name[i])
+        plt.legend()
+        plt.savefig(os.path.join(sp, n[i]))
+        # plt.show()
         plt.close()
 
-
+    plt.figure()
+    plt.plot
     # plt.figure()
     # plt.plot(data[:,])
     # for i in range(100):
@@ -122,7 +132,7 @@ def testmain():
     print("end")
 
 
-def evaluate_network():
+def evaluate_network(sp):
     data_path = 'C:/Users/ASUS/Google Drive/TU Delft/AE4350_Bio_inspired_intelligence_and_learning_for_Aerospace_Application/flight_data/csv_data'
     [fl, opti_file, cfsd_file] = getfilelist(data_path)
 
@@ -153,11 +163,14 @@ def evaluate_network():
 
     test_input = loadtxt(f"{data_path}/{cfsd_file[index]}", delimiter=',')  # numpy array
     test_target = loadtxt(f"{data_path}/{opti_file[index]}", delimiter=',')  # numpy array
+    test_input = test_input[:-1, :]
+    test_target = test_target[1:, :]
+
     v_sample = np.linspace(0, int(test_input.shape[0] - 1), int(test_input.shape[0] / 5))
 
     # test_input = test_input[:, np.r_[:12, 13:20]]
     # only ekf data to optitrack data
-    test_input = test_input[:, np.r_[0, 13, 14, 16, 17, 18, 19]]
+    test_input = test_input[:, np.r_[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 11, 14, 16, 17, 18, 19]]
     test_input = test_input[np.r_[v_sample.astype(int)], :]
 
     print(f"data size = {test_input.shape}")
@@ -197,13 +210,13 @@ def evaluate_network():
         plt.plot(FFNN_prediction[:, i], label="FFNN prediction")
         plt.ylabel(label_list[i])
         plt.legend()
-        plt.savefig(f"{namelist[i]}.png")
+        plt.savefig(f"{sp}/{namelist[i]}.png")
         plt.close()
 
     print("end model test")
 
 
-def main(inputsize, outputsize):
+def main(inputsize, outputsize, sp):
     data_path = 'C:/Users/ASUS/Google Drive/TU Delft/AE4350_Bio_inspired_intelligence_and_learning_for_Aerospace_Application/flight_data/csv_data'
 
     [fl, opti_file, cfsd_file] = getfilelist(data_path)
@@ -227,26 +240,39 @@ def main(inputsize, outputsize):
     if len(opti_file) == len(cfsd_file):
 
         for i in range(len(cfsd_file)):
-            data = loadtxt(f"{data_path}/{cfsd_file[i]}", delimiter=',')  # numpy array
-            target_ = loadtxt(f"{data_path}/{opti_file[i]}", delimiter=',')  # numpy array
-
+            data = loadtxt(f"{data_path}/{cfsd_file[i]}", delimiter=',')  # numpy array - cfsd
+            target_ = loadtxt(f"{data_path}/{opti_file[i]}", delimiter=',')  # numpy array - optitrack
+            target_ = target_[1:, :]
             # split data in training and validation
             # data = data[:, np.r_[:12, 13:20]]
+
             # only ekf data to optitrack data
-            data = data[:, np.r_[0, 13, 14, 16, 17, 18, 19]]
+            # data = data[:, np.r_[0, 13, 14, 16, 17, 18, 19]]
+
+            # measurement and previous ekf data to opti track
+            data = data[:, np.r_[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 11, 14, 16, 17, 18, 19]]
+            # split in measurement and ekf
+            mes = data[1:, :-6]
+            kalman = data[:-1, -6:]
+            data = np.hstack((mes, kalman))
+
             data_t = data[:int(0.8 * data.shape[0]), :]
             data_v = data[int(0.8 * data.shape[0]):, :]
+
             target_t = target_[:int(0.8 * target_.shape[0]), :]
             target_v = target_[int(0.8 * target_.shape[0]):, :]
 
             # reshaping the arrays to the proper format
             data_t = data_t.reshape((data_t.shape[0], 1, data_t.shape[1]))
             data_v = data_v.reshape((data_v.shape[0], 1, data_v.shape[1]))
+
             target_t = target_t.reshape((target_t.shape[0], 1, target_t.shape[1]))
             target_v = target_v.reshape((target_v.shape[0], 1, target_v.shape[1]))
 
             # train the network
-            print("training recurrent neural network")
+            print(f"training recurrent neural network \n input shape {inputsize} - output size {outputsize}",
+                  f"\n input data size {data_t.shape} ---- target data shape {target_t.shape}",
+                  f"\n input data size {data_v.shape} ---- target data shape {target_v.shape}")
             RNN = trainmodel(RNN, data_t, target_t, data_v, target_v, 20, 500)
             print("training feed forward neural network")
             FFNN = trainmodel(FFNN, data_t, target_t, data_v, target_v, 20, 500)
@@ -282,6 +308,18 @@ def main(inputsize, outputsize):
 
             RNN.compile(loss=loss_, optimizer=optimizer_, metrics=['accuracy'])
             FFNN.compile(loss=loss_, optimizer=optimizer_, metrics=['accuracy'])
+
+    RNN_json = RNN.to_json()
+    with open(f"{sp}/RNN_model.json", "w") as json_file:
+        json_file.write(RNN_json)
+    RNN.save_weights(f"{sp}/RNN_weights.h5")
+
+    FFNN_json = FFNN.to_json()
+    with open(f"{sp}/FFNN_model.json", "w") as json_file:
+        json_file.write(FFNN_json)
+    FFNN.save_weights(f"{sp}/FFNN_weights.h5")
+
+
 
     #
     # data = loadtxt(f"{data_path}/{cfsd_file[0]}", delimiter=',')  # numpy array
@@ -390,15 +428,38 @@ def main(inputsize, outputsize):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+    now = datetime.now()
+    date_time = now.strftime("%Y_%m_%d_%H_%M_%S")
+    spath = f"{os.getcwd()}\{date_time}"
+    flag_save_code = False
+
+    if not os.path.isdir(spath):
+        os.mkdir(spath)
+
+
+    if flag_save_code:
+
+
+        print(spath, dataset_number)
+        cpath = "C:/Users/ASUS/PycharmProjects/pythonProject/main.py"
+        codef = open(cpath, "r")
+        fname = f"{spath}\main.txt"
+        # if not os.path.isfile(fname):
+        #     os.mkfile
+
+        textf = open(fname, 'w')
+        for line in codef:
+            textf.write(line)
+        textf.close()
+        codef.close()
+
     inputsize = (1, 19)
     # only ekf data to optitrack data
-    inputsize = (1, 7)
+    inputsize = (1, 18)
     outputsize = (6, 1)
-    testmain()
-    # main(inputsize, outputsize)
-    # evaluate_network()
-
-
+    main(inputsize, outputsize, spath)
+    evaluate_network(spath)
+    # testmain(spath)
     print_hi('PyCharm')
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
