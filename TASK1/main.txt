@@ -41,14 +41,14 @@ def getfilelist(path):
 
 def getFFNNmodel(input_dim, out_dim):
     model = Sequential()
-    model.add(Dense(80, input_shape=input_dim, activation='relu', use_bias=True))
+    model.add(Dense(40, input_shape=input_dim, activation='relu', use_bias=True))
     model.add(Dropout(0.1))
-    model.add(Dense(60, activation=None))
+    model.add(Dense(40, activation=None))
     model.add(Dropout(0.1))
     model.add(Dense(40, activation='sigmoid'))
     model.add(Dropout(0.1))
-    model.add(Dense(25, activation='tanh'))
-    model.add(Dropout(0.1))
+    # model.add(Dense(25, activation='tanh'))
+    # model.add(Dropout(0.2))
     model.add(Dense(out_dim[0], activation=None))
     print(model.summary())
     return model
@@ -56,16 +56,17 @@ def getFFNNmodel(input_dim, out_dim):
 
 def getRNNmodel(input_dim, out_dim):
     model = Sequential()
-    model.add(Dense(80, input_shape=input_dim, activation='relu', use_bias=True))
+    model.add(Dense(40, input_shape=input_dim, activation=None, use_bias=True))
     model.add(Dropout(0.1))
-    model.add(Dense(60, activation=None))
+    print("added first layer")
+    model.add(LSTM(40, activation='relu'))
     model.add(Dropout(0.1))
     model.add(Dense(40, activation='sigmoid'))
     model.add(Dropout(0.1))
-    model.add(Dense(25, activation='tanh'))
-    model.add(Dropout(0.1))
-    model.add(LSTM(25, activation='tanh'))
-    model.add(Dropout(0.1))
+    print("added 2nd layer")
+    # model.add(Dense(20, activation='sigmoid'))
+    # model.add(Dropout(0.2))
+    print("added 3rd layer")
     model.add(Dense(out_dim[0], activation=None))
     print(model.summary())
     return model
@@ -503,7 +504,7 @@ def main(inputsize, outputsize, sp):
 if __name__ == '__main__':
     now = datetime.now()
     date_time = now.strftime("%Y_%m_%d_%H_%M_%S")
-    spath = f"{os.getcwd()}\{date_time}_final_test_sensor__rand_test"
+    spath = f"{os.getcwd()}\{date_time}_final_test_sensor__report"
     flag_save_code = True
 
     if not os.path.isdir(spath):
